@@ -33,14 +33,14 @@ from . import nasa_cdaweb_methods as cdw
 
 platform = 'maven'
 name = 'ngims'
-tags = {'':''}
-sat_ids = {'csn':['Neutral Compisition Data'],
+tags = {'csn':['Neutral Composition Data'],
            'ion':['Ion Composition Data']}
+sat_ids = {'':''}
 test_dates = {'':{'':pysat.datetime(2018,8,1)}}
 
 # support list files routine
 # use the default CDAWeb method
-fname = 'mvn_ngi_l2_csn-abund-28448_{year:04d}{month:02d}{day:02d}T{hh:02d}{mm:02d}{ss:02d}_v08_r01.csv'
+fname = 'mvn_ngi_l2_csn-abund-?????_{year:04d}{month:02d}{day:02d}T{hh:02d}{mm:02d}{ss:02d}_v08_r01.csv'
 supported_tags = {'':{'':fname}}
 list_files = functools.partial(cdw.list_files,
                                supported_tags=supported_tags)
