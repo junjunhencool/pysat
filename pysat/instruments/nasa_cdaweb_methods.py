@@ -247,10 +247,16 @@ def download(supported_tags, date_array, tag, sat_id,
         # format files for specific dates and download location
         formatted_remote_fname = remote_fname.format(year=date.year,
                                                      month=date.month,
-                                                     day=date.day)
+                                                     day=date.day,
+                                                     hour=date.hour,
+                                                     min=date.minute,
+                                                     sec=date.second)
         formatted_local_fname = local_fname.format(year=date.year,
                                                    month=date.month,
-                                                   day=date.day)
+                                                   day=date.day,
+                                                   hour=date.hour,
+                                                   min=date.minute,
+                                                   sec=date.second)
         saved_local_fname = os.path.join(data_path, formatted_local_fname)
 
         # perform download
@@ -330,8 +336,8 @@ def list_remote_files(tag, sat_id,
         list_files = functools.partial(nasa_cdaweb_methods.list_files,
                                        supported_tags=supported_tags)
 
-        ivm_fname = 'cnofs_cindi_ivm_500ms_{year:4d}{month:02d}{day:02d}_v01.cdf'
-        supported_tags = {'':ivm_fname}
+        fname = 'cnofs_cindi_ivm_500ms_{year:4d}{month:02d}{day:02d}_v01.cdf'
+        supported_tags = {'':fname}
         list_files = functools.partial(cdw.list_files,
                                        supported_tags=supported_tags)
 
@@ -373,6 +379,17 @@ def list_remote_files(tag, sat_id,
     elif len(dir_split) == 2:
         # no extra directories
         dirs = ['']
+    elif (len(dir_split) == 3) & (len(dir_split[0]) != 0):
+        links = soup.find_all('a', href=True)
+        dirs = []
+        for link in links:
+            if link['href'].count('/') == 1:
+                sub_path = remote_url + '/' + link['href']
+                sub_soup = BeautifulSoup(requests.get(sub_path).content, "lxml")
+                sub_links = sub_soup.find_all('a', href=True)
+                for slink in sub_links:
+                    if link['href'].count('/') == 1:
+                        dirs.append(link['href']+'/'+slink['href'])
     else:
         raise ValueError('Only traverses one extra level of directory.')
 
