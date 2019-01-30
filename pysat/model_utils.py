@@ -1,3 +1,14 @@
+"""
+pysat.model_utils - interface for modeled observations
+======================================================
+
+Main Features
+-------------
+- Comparison of models and measured data.
+- Matching of instruments to modelled data parameters.
+- Extraction of instrument-aligned data from a modelled data set.
+"""
+
 from __future__ import print_function
 from __future__ import absolute_import
 
@@ -6,6 +17,8 @@ import functools
 import datetime as dt
 import numpy as np
 import pandas as pds
+import xarray as xr
+
 
 def compare_model_and_inst(pairs=None, inst_name=[], mod_name=[],
                            methods=['all']):
@@ -34,7 +47,7 @@ def compare_model_and_inst(pairs=None, inst_name=[], mod_name=[],
     -----
     Statistics are calculated using PyForecastTools (imported as verify).
     See notes there for more details.
-    
+
     all - all statistics
     all_bias - bias, meanPercentageError, medianLogAccuracy, symmetricSignedBias
     accuracy - returns dict with mean squared error, root mean squared error,
@@ -61,27 +74,27 @@ def compare_model_and_inst(pairs=None, inst_name=[], mod_name=[],
     meanAPE - mean absolute percentage error
 
     """
-    import verify # PyForecastTools
+    import verify  # PyForecastTools
     from pysat import utils
 
-    method_rout = {"bias":verify.bias, "accuracy":verify.accuracy,
-                   "meanPercentageError":verify.meanPercentageError,
-                   "medianLogAccuracy":verify.medianLogAccuracy,
-                   "symmetricSignedBias":verify.symmetricSignedBias,
-                   "meanSquaredError":verify.meanSquaredError,
-                   "RMSE":verify.RMSE, "meanAbsError":verify.meanAbsError,
-                   "medAbsError":verify.medAbsError, "MASE":verify.MASE,
-                   "scaledAccuracy":verify.scaledAccuracy,
-                   "nRMSE":verify.nRMSE, "scaledError":verify.scaledError,
-                   "forecastError":verify.forecastError,
-                   "percError":verify.percError, "meanAPE":verify.meanAPE,
-                   "absPercError":verify.absPercError,
-                   "logAccuracy":verify.logAccuracy,
-                   "medSymAccuracy":verify.medSymAccuracy}
+    method_rout = {"bias": verify.bias, "accuracy": verify.accuracy,
+                   "meanPercentageError": verify.meanPercentageError,
+                   "medianLogAccuracy": verify.medianLogAccuracy,
+                   "symmetricSignedBias": verify.symmetricSignedBias,
+                   "meanSquaredError": verify.meanSquaredError,
+                   "RMSE": verify.RMSE, "meanAbsError": verify.meanAbsError,
+                   "medAbsError": verify.medAbsError, "MASE": verify.MASE,
+                   "scaledAccuracy": verify.scaledAccuracy,
+                   "nRMSE": verify.nRMSE, "scaledError": verify.scaledError,
+                   "forecastError": verify.forecastError,
+                   "percError": verify.percError, "meanAPE": verify.meanAPE,
+                   "absPercError": verify.absPercError,
+                   "logAccuracy": verify.logAccuracy,
+                   "medSymAccuracy": verify.medSymAccuracy}
 
-    replace_keys = {'MSE':'meanSquaredError', 'MAE':'meanAbsError',
-                    'MdAE':'medAbsError', 'MAPE':'meanAPE',
-                    'MdSymAcc':'medSymAccuracy'}
+    replace_keys = {'MSE': 'meanSquaredError', 'MAE': 'meanAbsError',
+                    'MdAE': 'medAbsError', 'MAPE': 'meanAPE',
+                    'MdSymAcc': 'medSymAccuracy'}
 
     # Grouped methods for things that don't have convenience functions
     grouped_methods = {"all_bias":["bias", "meanPercentageError",
@@ -117,7 +130,7 @@ def compare_model_and_inst(pairs=None, inst_name=[], mod_name=[],
         known_methods = list(method_rout.keys())
         known_methods.extend(list(grouped_methods.keys()))
         unknown_methods = [mm for mm in methods
-                           if not mm in list(method_rout.keys())]
+                           if mm not in list(method_rout.keys())]
         raise ValueError('unknown statistical method(s) requested:\n' +
                          '{:}\nuse only:\n{:}'.format(unknown_methods,
                                                       known_methods))
@@ -131,13 +144,19 @@ def compare_model_and_inst(pairs=None, inst_name=[], mod_name=[],
         # Determine whether the model data needs to be scaled
         iscale = utils.scale_units(pairs.data_vars[iname].units,
                                    pairs.data_vars[mod_name[i]].units)
-        mod_scaled = pairs.data_vars[mod_name[i]] * iscale
+        mod_scaled = pairs.data_vars[mod_name[i]].values.flatten() * iscale
+
+        # Flatten both data sets, since accuracy routines require 1D arrays
+        inst_dat = pairs.data_vars[iname].values.flatten()
+
+        # Ensure no NaN are used in statistics
+        inum = np.where(np.isfinite(mod_scaled) & np.isfinite(inst_dat))[0]
 
         # Calculate all of the desired statistics
         for mm in methods:
             try:
-                stat_dict[iname][mm] = method_rout[mm](mod_scaled,
-                                                       pairs.data_vars[iname])
+                stat_dict[iname][mm] = method_rout[mm](mod_scaled[inum],
+                                                       inst_dat[inum])
 
                 # Convenience functions add layers to the output, remove
                 # these layers
@@ -164,7 +183,8 @@ def collect_inst_model_pairs(start=None, stop=None, tinc=None, inst=None,
                              mod_units=[], sel_name=None, method='linear',
                              model_label='model', inst_clean_rout=None,
                              comp_clean='clean'):
-    """Extracts instrument-aligned data from a modelled data set
+    """Pair instrument and model data, applying data cleaning after finding the
+    times and locations where the instrument and model align
 
     Parameters
     ----------
@@ -202,7 +222,7 @@ def collect_inst_model_pairs(start=None, stop=None, tinc=None, inst=None,
         Name of the time coordinate in the model Dataset
     mod_units : list of strings
         units for each of the mod_name location attributes.  Currently
-        supports: rad/radian(s), deg/degree(s), h/hr(s)/hour(s), m, km, and cm 
+        supports: rad/radian(s), deg/degree(s), h/hr(s)/hour(s), m, km, and cm
     sel_name : list of strings or NoneType
         list of names of modelled data indices to append to instrument object,
         or None to append all modelled data (default=None)
@@ -226,14 +246,14 @@ def collect_inst_model_pairs(start=None, stop=None, tinc=None, inst=None,
 
     """
     from os import path
-    from pysat import utils
+    import pysat
 
     matched_inst = None
 
     # Test the input
     if start is None or stop is None:
         raise ValueError('Must provide start and end time for comparison')
-    
+
     if inst is None:
         raise ValueError('Must provide a pysat instrument object')
 
@@ -265,7 +285,8 @@ def collect_inst_model_pairs(start=None, stop=None, tinc=None, inst=None,
         raise ValueError('Need routine to clean the instrument data')
 
     # Download the instrument data, if needed
-    # Could use some improvement, for not re-downloading times that you already have
+    # Could use some improvement, for not re-downloading times that you already
+    # have
     if (stop-start).days != len(inst.files[start:stop]):
         inst.download(start=start, stop=stop, user=user, password=password)
 
@@ -283,34 +304,59 @@ def collect_inst_model_pairs(start=None, stop=None, tinc=None, inst=None,
 
         if mdata is not None:
             # Load the instrument data, if needed
-            if inst.empty or inst.data.index[-1] < istart:
-                inst.custom.add(utils.update_longitude, 'modify', low=lon_low,
-                                lon_name=inst_lon_name, high=lon_high)
+            if inst.empty or inst.index[-1] < istart:
+                inst.custom.add(pysat.utils.update_longitude, 'modify',
+                                low=lon_low, lon_name=inst_lon_name,
+                                high=lon_high)
                 inst.load(date=istart)
 
-            if not inst.empty and inst.data.index[0] >= istart:
+            if not inst.empty and inst.index[0] >= istart:
                 added_names = extract_modelled_observations(inst=inst, \
-                                model=mdata, inst_name=inst_name,
-                                                            mod_name=mod_name, \
-                                mod_datetime_name=mod_datetime_name, \
-                                mod_time_name=mod_time_name, \
-                                mod_units=mod_units, sel_name=sel_name, \
-                                method=method, model_label=model_label)
+                                        model=mdata, \
+                                        inst_name=inst_name, \
+                                        mod_name=mod_name, \
+                                        mod_datetime_name=mod_datetime_name, \
+                                        mod_time_name=mod_time_name, \
+                                        mod_units=mod_units, \
+                                        sel_name=sel_name, \
+                                        method=method, \
+                                        model_label=model_label)
 
                 if len(added_names) > 0:
                     # Clean the instrument data
                     inst.clean_level = comp_clean
                     inst_clean_rout(inst)
 
-                    im = [i for i,t in enumerate(inst[added_names[0]])
-                          if not np.isnan(t)]
+                    im = list()
+                    for aname in added_names:
+                        # Determine the number of good points
+                        if inst.pandas_format:
+                            imnew = np.where(np.isfinite(inst[aname]))
+                        else:
+                            imnew = np.where(np.isfinite(inst[aname].values))
+
+                        # Some data types are higher dimensions than others,
+                        # make sure we end up choosing a high dimension one
+                        # so that we don't accidently throw away paired data
+                        if len(im) == 0 or len(im[0]) < len(imnew[0]):
+                            im = imnew
+
+                    # If the data is 1D, save it as a list instead of a tuple
+                    if len(im) == 1:
+                        im = im[0]
+                    else:
+                        im = {kk: np.unique(im[i])
+                              for i,kk in enumerate(inst.data.coords.keys())}
 
                     # Save the clean, matched data
                     if matched_inst is None:
-                        matched_inst = inst.data.iloc[im]
+                        matched_inst = pysat.Instrument
                         matched_inst.meta = inst.meta
+                        matched_inst.data = inst.data[im]
                     else:
-                        matched_inst = matched_inst.append(inst.data.iloc[im])
+                        idata = inst[im]
+                        matched_inst.data = inst.concat_data([matched_inst.data,
+                                                              idata])
 
                     # Reset the clean flag
                     inst.clean_level = 'none'
@@ -328,10 +374,11 @@ def collect_inst_model_pairs(start=None, stop=None, tinc=None, inst=None,
 
     # Recast as xarray and add units
     if matched_inst is not None:
-        matched_inst = matched_inst.to_xarray()
+        if inst.pandas_format:
+            matched_inst.data = matched_inst.data.to_xarray()
         for im in inst.meta.data.units.keys():
-            if im in matched_inst.data_vars.keys():
-                matched_inst.data_vars[im].attrs['units'] = \
+            if im in matched_inst.data.data_vars.keys():
+                matched_inst.data.data_vars[im].attrs['units'] = \
                     inst.meta.data.units[im]
 
     return matched_inst
@@ -362,7 +409,7 @@ def extract_modelled_observations(inst=None, model=None, inst_name=[],
         Name of the time coordinate in the model Dataset
     mod_units : list of strings
         units for each of the mod_name location attributes.  Currently
-        supports: rad/radian(s), deg/degree(s), h/hr(s)/hour(s), m, km, and cm 
+        supports: rad/radian(s), deg/degree(s), h/hr(s)/hour(s), m, km, and cm
     sel_name : list of strings or NoneType
         list of names of modelled data indices to append to instrument object,
         or None to append all modelled data (default=None)
@@ -414,7 +461,7 @@ def extract_modelled_observations(inst=None, model=None, inst_name=[],
 
     inst_scale = np.ones(shape=len(inst_name), dtype=float)
     for i,ii in enumerate(inst_name):
-        if not ii in list(inst.data.keys()):
+        if ii not in list(inst.data.keys()):
             raise ValueError('Unknown instrument location index {:}'.format(ii))
         inst_scale[i] = utils.scale_units(mod_units[i],
                                           inst.meta.data.units[ii])
@@ -431,7 +478,7 @@ def extract_modelled_observations(inst=None, model=None, inst_name=[],
     tm_sec = (np.array(model.data_vars[mod_datetime_name][1:]) -
               np.array(model.data_vars[mod_datetime_name][:-1])).min()
     tm_sec /= np.timedelta64(1, 's')
-    ti_sec = (inst.data.index[1:] - inst.data.index[:-1]).min().total_seconds()
+    ti_sec = (inst.index[1:] - inst.index[:-1]).min().total_seconds()
     min_del = tm_sec if tm_sec < ti_sec else ti_sec
 
     # Determine which instrument observations are within the model time
@@ -439,14 +486,16 @@ def extract_modelled_observations(inst=None, model=None, inst_name=[],
     mind = list()
     iind = list()
     for i,tt in enumerate(np.array(model.data_vars[mod_datetime_name])):
-        del_sec = abs(tt - inst.data.index).total_seconds()
-        if del_sec.min() < min_del:
+        del_sec = abs(tt - inst.index).total_seconds()
+        if del_sec.min() <= min_del:
             iind.append(del_sec.argmin())
             mind.append(i)
 
     # Determine the model coordinates closest to the satellite track
     interp_data = dict()
-    inst_coord = {kk:getattr(inst.data, inst_name[i]) * inst_scale[i]
+    interp_shape = inst.index.shape if inst.pandas_format else \
+        inst.data.data_vars.items()[0][1].shape
+    inst_coord = {kk:getattr(inst.data, inst_name[i]).values * inst_scale[i]
                   for i,kk in enumerate(mod_name)}
     for i,ii in enumerate(iind):
         # Cycle through each model data type, since it may not depend on
@@ -455,34 +504,119 @@ def extract_modelled_observations(inst=None, model=None, inst_name=[],
             # Determine the dimension values
             dims = list(model.data_vars[mdat].dims)
             ndim = model.data_vars[mdat].data.shape
-            indices = tuple([mind[i] if kk == mod_time_name
-                             else slice(0,ndim[k]) for k,kk in enumerate(dims)])
+            indices = {mod_time_name: mind[i]}
 
             # Construct the data needed for interpolation
+            values = model[indices][mdat].data
             points = [model.coords[kk].data for kk in dims if kk in mod_name]
+            get_coords = True if len(points) > 0 else False
+            idims = 0
 
-            if len(points) > 0:
-                xi = [inst_coord[kk][ii] for kk in dims if kk in mod_name]
-                values = model.data_vars[mdat].data[indices]
+            while get_coords:
+                if inst.pandas_format:
+                    # This data iterates only by time
+                    xind = ii
+                    xi = [inst_coord[kk][xind] for kk in dims if kk in mod_name]
+                    get_coords = False
+                else:
+                    # This data may have additional dimensions
+                    if idims == 0:
+                        # Determine the number of dimensions
+                        idims = len(inst.data.coords)
+                        idim_names = inst.data.coords.keys()[1:]
+
+                        # Find relevent dimensions for cycling and slicing
+                        ind_dims = [k for k,kk in enumerate(inst_name)
+                                    if kk in idim_names]
+                        imod_dims = [k for k in ind_dims if mod_name[k] in dims]
+                        ind_dims = [inst.data.coords.keys().index(inst_name[k])
+                                    for k in imod_dims]
+
+                        # Set the number of cycles
+                        icycles = 0
+                        ncycles = sum([len(inst.data.coords[inst_name[k]])
+                                       for k in imod_dims])
+                        cinds = np.zeros(shape=len(imod_dims), dtype=int)
+
+                    # Get the instrument coordinate for this cycle
+                    if icycles < ncycles or icycles == 0:
+                        ss = [ii if k == 0 else 0 for k in range(idims)]
+                        se = [ii+1 if k == 0 else
+                              len(inst.data.coords[idim_names[k-1]])
+                              for k in range(idims)]
+                        xout = [cinds[ind_dims.index(k)] if k in ind_dims
+                                else slice(ss[k], se[k]) for k in range(idims)]
+                        xind = [cinds[ind_dims.index(k)] if k in ind_dims
+                                else ss[k] for k in range(idims)]
+                        xout = tuple(xout)
+                        xind = tuple(xind)
+
+                        xi = list()
+                        for kk in dims:
+                            if kk in mod_name:
+                                # This is the next instrument coordinate
+                                k = mod_name.index(kk)
+                                if k in imod_dims:
+                                    # This is an xarray coordiante
+                                    xi.append(inst_coord[kk][cinds[k]])
+                                else:
+                                    # This is an xarray variable
+                                    xi.append(inst_coord[kk][xind])
+
+                        # Cycle the indices
+                        if len(cinds) > 0:
+                            k = 0
+                            cinds[k] += 1
+
+                            while cinds[k] > \
+                                inst.data.coords.dims[inst_name[imod_dims[k]]]:
+                                k += 1
+                                if k < len(cinds):
+                                    cinds[k-1] = 0
+                                    cinds[k] += 1
+                                else:
+                                    break
+                        icycles += 1
+
+                    # If we have cycled through all the coordinates for this
+                    # time, move onto the next time
+                    if icycles >= ncycles:
+                        get_coords = False
 
                 # Interpolate the desired value
-                yi = interpolate.interpn(points, values, xi, method=method)
+                try:
+                    yi = interpolate.interpn(points, values, xi, method=method)
+                except ValueError as verr:
+                    if str(verr).find("requested xi is out of bounds") > 0:
+                        # This is acceptable, pad the interpolated data with NaN
+                        print("Warning: {:} for ".format(verr) +
+                              "{:s} data at {:}".format(mdat, xi))
+                        yi = [np.nan]
+                    else:
+                        raise ValueError(verr)
 
                 # Save the output
                 attr_name = "{:s}_{:s}".format(model_label, mdat)
                 if not attr_name in interp_data.keys():
                     interp_data[attr_name] = \
-                        np.empty(shape=inst.data.index.shape,
-                                 dtype=float) * np.nan
-                interp_data[attr_name][ii] = yi[0]
+                        np.empty(shape=interp_shape, dtype=float) * np.nan
+                interp_data[attr_name][xout] = yi[0]
 
+    # Test and ensure the instrument data doesn't already have the interpolated
+    # data.  This should not happen
+    if np.any([mdat in inst.data.keys() for mdat in interp_data.keys()]):
+        raise ValueError("instrument object already contains model data")
+                
     # Update the instrument object and attach units to the metadata
     for mdat in interp_data.keys():
-        inst[mdat] = pds.Series(interp_data[mdat], index=inst.data.index)
-
         attr_name = mdat.split("{:s}_".format(model_label))[-1]
         inst.meta.data.units[mdat] = model.data_vars[attr_name].units
 
-    return interp_data.keys()
-    
+        if inst.pandas_format:
+            inst[mdat] = pds.Series(interp_data[mdat], index=inst.index)
+        else:
+            inst.data = inst.data.assign(interp_key=(inst.data.coords.keys(),
+                                                     interp_data[mdat]))
+            inst.data.rename({"interp_key":mdat}, inplace=True)
 
+    return interp_data.keys()

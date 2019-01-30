@@ -6,13 +6,13 @@ General Instrument
 ------------------
 
 .. automodule:: pysat.instruments.template_instrument
-   :members: __doc__, init, default, load, list_files, download, clean
+   :members: __doc__, init, default, load, list_files, list_remote_files, download, clean
 
 NASA CDAWeb Instrument
 ----------------------
 
 .. automodule:: pysat.instruments.template_cdaweb_instrument
-   :members: __doc__, init, default, load, list_files, download, clean
+   :members: __doc__, init, default, load, list_files, list_remote_files, download, clean
 
 
 General Data Source Methods
@@ -22,14 +22,14 @@ NASA CDAWeb
 -----------
 
 .. automodule:: pysat.instruments.nasa_cdaweb_methods
-   :members: __doc__, init, load, list_files, download
+   :members: __doc__, init, load, list_files, list_remote_files, download
 
 
 Madrigal
 --------
 
 .. automodule:: pysat.instruments.madrigal_methods
-   :members: __doc__, cedar_rules, load, download
+   :members: __doc__, cedar_rules, load, download, filter_data_single_date
 
 
 Demeter
@@ -89,18 +89,6 @@ DMSP IVM
 
 .. automodule:: pysat.instruments.dmsp_ivm
    :members: __doc__, smooth_ram_drifts, update_DMSP_ephemeris, add_drift_unit_vectors, add_drifts_polar_cap_x_y
-
-Dst
----
-
-.. automodule:: pysat.instruments.sw_dst
-   :members: __doc__
-
-Kp
---
-
-.. automodule:: pysat.instruments.sw_kp
-   :members: __doc__, filter_geoquiet
 
 ICON EUV
 --------
@@ -179,6 +167,24 @@ SuperMAG
 
 .. automodule:: pysat.instruments.supermag_magnetometer
    :members: __doc__
+
+SW Dst
+------
+
+.. automodule:: pysat.instruments.sw_dst
+   :members: __doc__
+
+SW F107
+-------
+
+.. automodule:: pysat.instruments.sw_f107
+   :members: __doc__
+
+SW Kp
+-----
+
+.. automodule:: pysat.instruments.sw_kp
+   :members: __doc__, filter_geoquiet
 
 TIMED/SEE
 ---------
