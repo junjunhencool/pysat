@@ -77,7 +77,6 @@ def compare_model_and_inst(pairs=None, inst_name=[], mod_name=[],
 
     """
     import verify  # PyForecastTools
-    from pysat import utils
 
     method_rout = {"bias": verify.bias, "accuracy": verify.accuracy,
                    "meanPercentageError": verify.meanPercentageError,
@@ -145,7 +144,7 @@ def compare_model_and_inst(pairs=None, inst_name=[], mod_name=[],
     # Cycle through all of the data types
     for i, iname in enumerate(inst_name):
         # Determine whether the model data needs to be scaled
-        iscale = utils.scale_units(pairs.data_vars[iname].units,
+        iscale = coords.scale_units(pairs.data_vars[iname].units,
                                    pairs.data_vars[mod_name[i]].units)
         mod_scaled = pairs.data_vars[mod_name[i]].values.flatten() * iscale
 
@@ -250,6 +249,7 @@ def collect_inst_model_pairs(start=None, stop=None, tinc=None, inst=None,
     """
     from os import path
     import pysat
+    from pysat.utils import coords
 
     matched_inst = None
 
@@ -309,22 +309,23 @@ def collect_inst_model_pairs(start=None, stop=None, tinc=None, inst=None,
         if mdata is not None:
             # Load the instrument data, if needed
             if inst.empty or inst.index[-1] < istart:
-                inst.custom.add(pysat.utils.update_longitude, 'modify',
+                inst.custom.add(coords.update_longitude, 'modify',
                                 low=lon_low, lon_name=inst_lon_name,
                                 high=lon_high)
                 inst.load(date=istart)
 
             if not inst.empty and inst.index[0] >= istart:
-                added_names = extract_modelled_observations(inst=inst, \
-                                        model=mdata, \
-                                        inst_name=inst_name, \
-                                        mod_name=mod_name, \
-                                        mod_datetime_name=mod_datetime_name, \
-                                        mod_time_name=mod_time_name, \
-                                        mod_units=mod_units, \
-                                        sel_name=sel_name, \
-                                        method=method, \
-                                        model_label=model_label)
+                added_names = \
+                    extract_modelled_observations(inst=inst,
+                                                  model=mdata,
+                                                  inst_name=inst_name,
+                                                  mod_name=mod_name,
+                                                  mod_datetime_name=mod_datetime_name,
+                                                  mod_time_name=mod_time_name,
+                                                  mod_units=mod_units,
+                                                  sel_name=sel_name,
+                                                  method=method,
+                                                  model_label=model_label)
 
                 if len(added_names) > 0:
                     # Clean the instrument data
@@ -436,7 +437,6 @@ def extract_modelled_observations(inst=None, model=None, inst_name=[],
 
     """
     from scipy import interpolate
-    from pysat import utils
 
     # Test input
     if inst is None:
@@ -469,8 +469,8 @@ def extract_modelled_observations(inst=None, model=None, inst_name=[],
         if ii not in list(inst.data.keys()):
             raise ValueError('Unknown instrument location index ' +
                              '{:}'.format(ii))
-        inst_scale[i] = utils.scale_units(mod_units[i],
-                                          inst.meta.data.units[ii])
+        inst_scale[i] = coords.scale_units(mod_units[i],
+                                           inst.meta.data.units[ii])
 
     # Determine which data to interpolate and initialize the interpolated
     # output
