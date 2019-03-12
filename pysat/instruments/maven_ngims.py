@@ -11,6 +11,8 @@ platform : string
 name : string
     'ngims'
 tag : string
+    'csn' or 'ion'
+sat_id : string
     None Supported
 
 Warnings
@@ -33,16 +35,18 @@ from . import nasa_cdaweb_methods as cdw
 
 platform = 'maven'
 name = 'ngims'
-tags = {'csn': ['Neutral Composition Data'],
-        'ion': ['Ion Composition Data']}
-sat_ids = {'': ''}
-test_dates = {'': {'': pysat.datetime(2018, 8, 1)}}
+tags = {'csn': 'Neutral Composition Data',
+        'ion': 'Ion Composition Data'}
+sat_ids = {'': ['csn', 'ion']}
+test_dates = {'': {'csn': pysat.datetime(2018, 8, 1)},
+              '': {'ion': pysat.datetime(2018, 8, 1)}}
 
 # support list files routine
 # use the default CDAWeb method
 fname = ''.join(['mvn_ngi_l2_csn-abund-?????_{year:04d}{month:02d}',
-                 '{day:02d}T{hour:02d}{min:02d}{sec:02d}_v08_r01.csv'])
-supported_tags = {'': {'': fname}}
+                 '{day:02d}T??????_v08_r01.csv'])
+supported_tags = {'': {'csn': fname},
+                  '': {'ion': fname}}
 list_files = functools.partial(cdw.list_files,
                                supported_tags=supported_tags)
 # support load routine
@@ -53,10 +57,15 @@ load = pds.read_csv
 # use the default CDAWeb method modified for the PDS website
 basic_tag = {'remote_site': 'https://atmos.nmsu.edu',
              'dir': '/PDS/data/PDS4/MAVEN/ngims_bundle/l2/',
-             'remote_fname': '{year:04d}/{month:02d}/'+fname,
+             'remote_fname': '{year:04d}/{month:02d}/' + fname,
              'local_fname': fname}
-supported_tags = {'': {'': basic_tag}}
-download = functools.partial(cdw.download, supported_tags)
+supported_tags = {'': {'csn': basic_tag},
+                  '': {'ion': basic_tag}}
+download = functools.partial(cdw.download, supported_tags, multi_file_day=True)
+
+# support listing files currently on CDAWeb
+list_remote_files = functools.partial(cdw.list_remote_files,
+                                      supported_tags=supported_tags)
 
 
 def clean(inst):
