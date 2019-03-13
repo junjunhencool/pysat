@@ -38,15 +38,18 @@ name = 'ngims'
 tags = {'csn': 'Neutral Composition Data',
         'ion': 'Ion Composition Data'}
 sat_ids = {'': ['csn', 'ion']}
-test_dates = {'': {'csn': pysat.datetime(2018, 8, 1)},
-              '': {'ion': pysat.datetime(2018, 8, 1)}}
+test_dates = {'': {'csn': pysat.datetime(2018, 8, 1),
+                   'ion': pysat.datetime(2018, 8, 1)}}
 
 # support list files routine
 # use the default CDAWeb method
-fname = ''.join(['mvn_ngi_l2_csn-abund-?????_{year:04d}{month:02d}',
-                 '{day:02d}T??????_v08_r01.csv'])
-supported_tags = {'': {'csn': fname},
-                  '': {'ion': fname}}
+fname1 = ''.join(['mvn_ngi_l2_csn-abund-?????_{year:04d}{month:02d}',
+                  '{day:02d}T??????_v08_r01.csv'])
+fname2 = ''.join(['mvn_ngi_l2_ion-abund-?????_{year:04d}{month:02d}',
+                  '{day:02d}T??????_v08_r01.csv'])
+supported_tags = {'': {'csn': fname1,
+                       'ion': fname2}}
+
 list_files = functools.partial(cdw.list_files,
                                supported_tags=supported_tags)
 # support load routine
@@ -55,16 +58,21 @@ load = pds.read_csv
 
 # support download routine
 # use the default CDAWeb method modified for the PDS website
-basic_tag = {'remote_site': 'https://atmos.nmsu.edu',
-             'dir': '/PDS/data/PDS4/MAVEN/ngims_bundle/l2/',
-             'remote_fname': '{year:04d}/{month:02d}/' + fname,
-             'local_fname': fname}
-supported_tags = {'': {'csn': basic_tag},
-                  '': {'ion': basic_tag}}
-download = functools.partial(cdw.download, supported_tags, multi_file_day=True)
+basic_tag1 = {'dir': '/PDS/data/PDS4/MAVEN/ngims_bundle/l2/',
+              'remote_fname': '{year:04d}/{month:02d}/' + fname1,
+              'local_fname': fname1}
+basic_tag2 = {'dir': '/PDS/data/PDS4/MAVEN/ngims_bundle/l2/',
+              'remote_fname': '{year:04d}/{month:02d}/' + fname2,
+              'local_fname': fname2}
+supported_tags = {'': {'csn': basic_tag1,
+                       'ion': basic_tag2}}
+download = functools.partial(cdw.download, supported_tags,
+                             remote_site='https://atmos.nmsu.edu',
+                             multi_file_day=True)
 
 # support listing files currently on CDAWeb
 list_remote_files = functools.partial(cdw.list_remote_files,
+                                      remote_site='https://atmos.nmsu.edu',
                                       supported_tags=supported_tags)
 
 
