@@ -33,7 +33,8 @@ from __future__ import print_function
 from __future__ import absolute_import
 import glob
 import os
-import pandas as pds
+
+import netCDF4
 import numpy as np
 import pysat
 
@@ -112,7 +113,8 @@ def list_files(tag=None, sat_id=None, data_path=None, format_str=None):
         # adding microseconds to ensure each time is unique, not allowed to
         # pass 1.E-3 s
         uts += np.mod(np.array(microseconds).astype(int)*1.E-6, 1.E-3)
-        index = pysat.utils.create_datetime_index(year=year, day=days, uts=uts)
+        index = pysat.utils.time.create_datetime_index(year=year, day=days,
+                                                       uts=uts)
         file_list = pysat.Series(cosmicFiles, index=index)
         return file_list
     else:
@@ -124,7 +126,6 @@ def load(cosmicFiles, tag=None, sat_id=None):
     """
     cosmic data load routine, called by pysat
     """
-    import netCDF4
 
     num = len(cosmicFiles)
     # make sure there are files to read
@@ -134,10 +135,11 @@ def load(cosmicFiles, tag=None, sat_id=None):
         output = pysat.DataFrame(load_files(cosmicFiles, tag=tag,
                                             sat_id=sat_id))
         utsec = output.hour * 3600. + output.minute * 60. + output.second
-        output.index = pysat.utils.create_datetime_index(year=output.year,
-                                                         month=output.month,
-                                                         day=output.day,
-                                                         uts=utsec)
+        output.index = \
+            pysat.utils.time.create_datetime_index(year=output.year,
+                                                   month=output.month,
+                                                   day=output.day,
+                                                   uts=utsec)
         # make sure UTS strictly increasing
         output.sort_index(inplace=True)
         # use the first available file to pick out meta information
@@ -285,7 +287,7 @@ def download(date_array, tag, sat_id, data_path=None,
 
     for date in date_array:
         print('Downloading COSMIC data for ' + date.strftime('%D'))
-        yr, doy = pysat.utils.getyrdoy(date)
+        yr, doy = pysat.utils.time.getyrdoy(date)
         yrdoystr = '{year:04d}.{doy:03d}'.format(year=yr, doy=doy)
         dwnld = ''.join(("https://cdaac-www.cosmic.ucar.edu/cdaac/rest/",
                          "tarservice/data/cosmic2013/"))

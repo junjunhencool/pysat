@@ -1,12 +1,12 @@
 """
 tests the pysat meta object and code
 """
-import importlib
+from importlib import import_module
 from functools import partial
 import numpy as np
-import sys
+import os
+import warnings
 
-import nose.tools
 import pandas as pds
 import tempfile
 
@@ -25,6 +25,26 @@ exclude_tags = {'sw_f107': {'tag': ['prelim'], 'sat_id': ['']},
 
 # dict, keyed by pysat instrument, with a list of usernames and passwords
 user_download_dict = {'supermag_magnetometer': ['rstoneback', None]}
+
+
+def remove_files(inst):
+    # remove any files downloaded as part of the unit tests
+    temp_dir = inst.files.data_path
+    # Check if there are less than 20 files to ensure this is the testing
+    # directory
+    if len(inst.files.files.values) < 20:
+        for the_file in list(inst.files.files.values):
+            # Check if filename is appended with date for fake_daily data
+            # ie, does an underscore exist to the right of the file extension?
+            if the_file.rfind('_') > the_file.rfind('.'):
+                # If so, trim the appendix to get the original filename
+                the_file = the_file[:the_file.rfind('_')]
+            file_path = os.path.join(temp_dir, the_file)
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+    else:
+        warnings.warn(''.join(('Files > 20.  Not deleted.  Please check to ',
+                              'ensure temp directory is used')))
 
 
 def init_func_external(self):
@@ -55,8 +75,8 @@ def init_func_external(self):
 
     for name in instrument_names:
         try:
-            module = importlib.import_module(''.join(('.', name)),
-                                             package='pysat.instruments')
+            module = import_module(''.join(('.', name)),
+                                   package='pysat.instruments')
         except ImportError:
             print("Couldn't import instrument module")
             pass
@@ -124,12 +144,12 @@ class TestInstrumentQualifier():
         pass
 
     def check_module_loadable(self, module, tag, sat_id):
-        a = pysat.Instrument(inst_module=module, tag=tag, sat_id=sat_id)
+        _ = pysat.Instrument(inst_module=module, tag=tag, sat_id=sat_id)
         assert True
 
     def check_module_importable(self, name):
-        module = importlib.import_module(''.join(('.', name)),
-                                         package='pysat.instruments')
+        _ = import_module(''.join(('.', name)),
+                          package='pysat.instruments')
         assert True
 
     def check_module_info(self, module):
@@ -156,8 +176,8 @@ class TestInstrumentQualifier():
             yield (f,)
 
             try:
-                module = importlib.import_module(''.join(('.', name)),
-                                                 package='pysat.instruments')
+                module = import_module(''.join(('.', name)),
+                                       package='pysat.instruments')
             except ImportError:
                 pass
             else:
@@ -337,6 +357,8 @@ class TestInstrumentQualifier():
                                           inst.platform, inst.name, inst.tag,
                                           inst.sat_id))
                 yield (f,)
+
+                remove_files(inst)
             else:
                 print('Unable to actually download a file.')
                 # raise RuntimeWarning(' '.join(('Download for', inst.platform,
@@ -345,7 +367,6 @@ class TestInstrumentQualifier():
                 warnings.warn(' '.join(('Download for', inst.platform,
                                         inst.name, inst.tag, inst.sat_id,
                                         'was not successful.')))
-                # TODO need a warning!
 
     # Optional support
 

@@ -3,13 +3,13 @@ tests the pysat meta object and code for instruments with ftp downloads.
 
 Intended to be run locally, excluded from Travis CI
 """
-import importlib
+from importlib import import_module
 import os
 import tempfile
 
 import pysat
 import pysat.instruments.pysat_testing
-import pysat.tests.test_instruments
+import pysat.tests.test_instruments as test_inst
 
 include_list = ['sw_dst']
 # dict, keyed by pysat instrument, with a list of usernames and passwords
@@ -41,8 +41,8 @@ def init_func_external(self):
     for name in instrument_names:
         try:
             print(' '.join(('FTP', name)))
-            module = importlib.import_module(''.join(('.', name)),
-                                             package='pysat.instruments')
+            module = import_module(''.join(('.', name)),
+                                   package='pysat.instruments')
         except ImportError:
             print("Couldn't import instrument module")
             pass
@@ -79,7 +79,7 @@ init_names = None
 #        os.environ.get('Travis'),
 #        os.environ.get('TRAVIS'), os.environ.get('CI'))
 if not (os.environ.get('TRAVIS') == 'true'):
-    class TestFTPInstrumentQualifier(pysat.tests.test_instruments.TestInstrumentQualifier):
+    class TestFTPInstrumentQualifier(test_inst.TestInstrumentQualifier):
 
         def __init__(self):
             """Iterate through and create all of the test Instruments needed"""

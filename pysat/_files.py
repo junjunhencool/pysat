@@ -334,23 +334,6 @@ class Files(object):
         new_files = new_info[-new_info.isin(old_info)]
         return new_files
 
-    # def mark_as_new(self, files):
-    #     """Set list of files as new.
-    #
-    #     """
-    #     pass
-        # stored_info = self._load()
-        # if not stored_info.empty: # is not False:
-        #     new_info = self._sat._list_rtn(tag = self._sat.tag,
-        #                                    data_path=self.data_path,
-        #                                    format_str=self.file_format)
-        #     new_info = self._remove_data_dir_path(new_info)
-        #     new_files = new_info[~new_info.isin(stored_info) ]
-        #     return new_files
-        # else:
-        #     print('No previously stored files that we may compare to.')
-        #     return pds.Series([], dtype='a') #False
-
     def get_index(self, fname):
         """Return index for a given filename.
 
@@ -371,7 +354,6 @@ class Files(object):
         if len(idx) == 0:
             # filename not in index, try reloading files from disk
             self.refresh()
-            # print("DEBUG get_index:", fname, self.files)
             idx, = np.where(fname == np.array(self.files))
 
             if len(idx) == 0:
@@ -418,13 +400,6 @@ class Files(object):
                 return self.files.iloc[key]
             except:
                 return self.files.loc[key]
-            # raise ValueError('Not implemented yet.')
-        # if isinstance(key, tuple):
-        #    if len(key) == 2:
-        #        start = key[0]
-        #        end = key[1]
-        #    else:
-        #        raise ValueError('Must input 2 and only 2 items/iterables')
 
     def get_file_array(self, start, end):
         """Return a list of filenames between and including start and end.
@@ -480,8 +455,8 @@ class Files(object):
         format_str : string with python format codes
             Provides the naming pattern of the instrument files and the
             locations of date information so an ordered list may be produced.
-            Supports 'year', 'month', 'day', 'hour', 'min', 'sec', 'version',
-            and 'revision'
+            Supports 'year', 'month', 'day', 'hour', 'minute', 'second',
+            'version', and 'revision'
             Ex: 'cnofs_cindi_ivm_500ms_{year:4d}{month:02d}{day:02d}_v01.cdf'
         two_digit_year_break : int
             If filenames only store two digits for the year, then
@@ -587,13 +562,13 @@ def process_parsed_filenames(stored, two_digit_year_break=None):
             stored[key] = rec_arr[key]
         files = rec_arr['files']
 
-        # add hour and minute information to 'sec'
-        if stored['sec'] is None:
-            stored['sec'] = np.zeros(len(files))
+        # add hour and minute information to 'second'
+        if stored['second'] is None:
+            stored['second'] = np.zeros(len(files))
         if stored['hour'] is not None:
-            stored['sec'] += 3600 * stored['hour']
-        if stored['min'] is not None:
-            stored['sec'] += 60 * stored['min']
+            stored['second'] += 3600 * stored['hour']
+        if stored['minute'] is not None:
+            stored['second'] += 60 * stored['minute']
         # version shouldn't be set to zero
         # version is required to remove duplicate datetimes
         if stored['revision'] is None:
@@ -602,7 +577,7 @@ def process_parsed_filenames(stored, two_digit_year_break=None):
         index = create_datetime_index(year=stored['year'],
                                       month=stored['month'],
                                       day=stored['day'],
-                                      uts=stored['sec'])
+                                      uts=stored['second'])
 
         # if version and revision are supplied
         # use these parameters to weed out files that have been replaced
@@ -638,7 +613,7 @@ def parse_fixed_width_filenames(files, format_str):
     format_str : string with python format codes
         Provides the naming pattern of the instrument files and the
         locations of date information so an ordered list may be produced.
-        Supports 'year', 'month', 'day', 'hour', 'min', 'sec', 'version',
+        Supports 'year', 'month', 'day', 'hour', 'minute', 'second', 'version',
         and 'revision'
         Ex: 'cnofs_cindi_ivm_500ms_{year:4d}{month:02d}{day:02d}_v01.cdf'
 
@@ -646,7 +621,8 @@ def parse_fixed_width_filenames(files, format_str):
     -------
     OrderedDict
         Information parsed from filenames
-        'year', 'month', 'day', 'hour', 'min', 'sec', 'version', 'revision'
+        'year', 'month', 'day', 'hour', 'minute', 'second', 'version',
+        'revision'
         'files' - input list of files
 
     """
@@ -659,8 +635,8 @@ def parse_fixed_width_filenames(files, format_str):
     stored['month'] = []
     stored['day'] = []
     stored['hour'] = []
-    stored['min'] = []
-    stored['sec'] = []
+    stored['minute'] = []
+    stored['second'] = []
     stored['version'] = []
     stored['revision'] = []
 
@@ -719,7 +695,7 @@ def parse_delimited_filenames(files, format_str, delimiter):
     format_str : string with python format codes
         Provides the naming pattern of the instrument files and the
         locations of date information so an ordered list may be produced.
-        Supports 'year', 'month', 'day', 'hour', 'min', 'sec', 'version',
+        Supports 'year', 'month', 'day', 'hour', 'minute', 'second', 'version',
         and 'revision'
         Ex: 'cnofs_cindi_ivm_500ms_{year:4d}{month:02d}{day:02d}_v01.cdf'
 
@@ -727,15 +703,17 @@ def parse_delimited_filenames(files, format_str, delimiter):
     -------
     OrderedDict
         Information parsed from filenames
-        'year', 'month', 'day', 'hour', 'min', 'sec', 'version', 'revision'
+        'year', 'month', 'day', 'hour', 'minute', 'second', 'version',
+        'revision'
         'files' - input list of files
+        'format_str' - formatted string from input
 
     """
 
     import collections
 
     # create storage for data to be parsed from filenames
-    ordered_keys = ['year', 'month', 'day', 'hour', 'min', 'sec',
+    ordered_keys = ['year', 'month', 'day', 'hour', 'minute', 'second',
                     'version', 'revision']
     stored = collections.OrderedDict({kk: list() for kk in ordered_keys})
 
@@ -799,7 +777,7 @@ def construct_searchstring_from_format(format_str, wildcard=False):
     format_str : string with python format codes
         Provides the naming pattern of the instrument files and the
         locations of date information so an ordered list may be produced.
-        Supports 'year', 'month', 'day', 'hour', 'min', 'sec', 'version',
+        Supports 'year', 'month', 'day', 'hour', 'minute', 'second', 'version',
         and 'revision'
         Ex: 'cnofs_vefi_bfield_1sec_{year:04d}{month:02d}{day:02d}_v05.cdf'
     wildcard : bool
