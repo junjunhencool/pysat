@@ -8,7 +8,6 @@ intervention.
 from __future__ import absolute_import, division, print_function
 import sys
 
-import numpy as np
 import pandas as pds
 
 import pysat
@@ -72,10 +71,10 @@ def list_files(tag=None, sat_id=None, data_path=None, format_str=None,
 
     if data_path is not None:
         if format_str is None:
-                try:
-                    format_str = supported_tags[sat_id][tag]
-                except KeyError:
-                    raise ValueError('Unknown tag: ' + tag)
+            try:
+                format_str = supported_tags[sat_id][tag]
+            except KeyError:
+                raise ValueError('Unknown tag: ' + tag)
         out = pysat.Files.from_os(data_path=data_path,
                                   format_str=format_str)
 
@@ -455,9 +454,21 @@ def list_remote_files(tag, sat_id,
                                        subdir.format(day=day)))
                 n_layers -= 1
 
-    # Find filename extension required by format_str
-    # Storing as list to be extendable to other search targets in future
+    # Start with file extention as prime target
     targets = ['.' + format_str.split('.')[-1]]
+
+    # Extract file preamble as target - those characters left of variables
+    # or wildcards
+    fmt_idx = [format_str.find('{')]
+    fmt_idx.append(format_str.find('?'))
+    fmt_idx.append(format_str.find('*'))
+
+    # Not all characters may exist in a filename.  Remove those that don't.
+    fmt_idx.remove(-1)
+
+    # If preamble exists, add to targets
+    if fmt_idx:
+        targets.append(format_str[0:min(fmt_idx)])
 
     remote_dirs = []
     for level in range(n_layers + 1):
