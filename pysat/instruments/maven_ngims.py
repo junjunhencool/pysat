@@ -24,6 +24,7 @@ Warnings
 
 from __future__ import print_function
 from __future__ import absolute_import
+import numpy as np
 import pandas as pds
 import pysat
 import functools
@@ -48,12 +49,10 @@ fname2 = ''.join(['mvn_ngi_l2_ion-abund-?????_{year:04d}{month:02d}',
 supported_tags = {'': {'csn': fname1,
                        'ion': fname2}}
 
+multi_file_day = True
+
 list_files = functools.partial(cdw.list_files,
                                supported_tags=supported_tags)
-# support load routine
-# use pandas csv reader
-load = pds.read_csv
-
 # support download routine
 # use the default CDAWeb method modified for the PDS website
 basic_tag1 = {'dir': '/PDS/data/PDS4/MAVEN/ngims_bundle/l2/',
@@ -66,12 +65,52 @@ supported_tags = {'': {'csn': basic_tag1,
                        'ion': basic_tag2}}
 download = functools.partial(cdw.download, supported_tags,
                              remote_site='https://atmos.nmsu.edu',
-                             multi_file_day=True)
+                             multi_file_day=multi_file_day)
 
 # support listing files currently on CDAWeb
 list_remote_files = functools.partial(cdw.list_remote_files,
                                       remote_site='https://atmos.nmsu.edu',
                                       supported_tags=supported_tags)
+
+
+def load(fnames, tag=None, sat_id=None):
+    """Load Kp index files
+
+    Parameters
+    ------------
+    fnames : (pandas.Series)
+        Series of filenames
+    tag : (str or NoneType)
+        tag or None (default=None)
+    sat_id : (str or NoneType)
+        satellite id or None (default=None)
+
+    Returns
+    ---------
+    data : (pandas.DataFrame)
+        Object containing satellite data
+    meta : (pysat.Meta)
+        Object containing metadata such as column names and units
+
+    Notes
+    -----
+    Called by pysat. Not intended for direct use by user.
+
+
+    """
+
+    data = pds.read_csv(fnames[0], index_col=0, parse_dates=True)
+    for fname in fnames[1:]:
+        new_data = pds.read_csv(fname, index_col=0, parse_dates=True)
+        data = data.append(new_data, sort=True)
+
+    # TODO: sort data by mass
+
+    meta = pysat.Meta()
+
+    # TODO: add metadata from columns
+
+    return data, meta
 
 
 def clean(inst):
