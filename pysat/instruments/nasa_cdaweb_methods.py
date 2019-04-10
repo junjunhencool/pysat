@@ -291,6 +291,7 @@ def download(supported_tags, date_array, tag, sat_id,
                                 date.strftime('%d %B %Y'))))
                 sys.stdout.flush()
                 remote_files = list_remote_files(tag=tag, sat_id=sat_id,
+                                                 remote_site=remote_site,
                                                  supported_tags=supported_tags,
                                                  year=date.year,
                                                  month=date.month,
@@ -514,7 +515,6 @@ def list_remote_files(tag, sat_id,
     # process the parsed filenames and return a properly formatted Series
     stored_list = pysat._files.process_parsed_filenames(stored,
                                                         two_digit_year_break)
-
     # Downselect to user-specified dates, if needed
     if year is not None:
         mask = (stored_list.index.year == year)
