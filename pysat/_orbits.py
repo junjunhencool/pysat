@@ -69,15 +69,16 @@ class Orbits(object):
         vefi.orbits.next()
         # backwards
         vefi.orbits.prev()
+
     """
 
     def __init__(self, sat=None, index=None, kind=None, period=None):
+        """Initialize orbit object."""
         # create null arrays for storing orbit info
         if sat is None:
             raise ValueError('Must provide a pysat instrument object when ' +
                              'initializing orbits class.')
         else:
-            # self.sat = weakref.proxy(sat)
             self.sat = sat
 
         if kind is None:
@@ -109,7 +110,7 @@ class Orbits(object):
 
     @property
     def current(self):
-        """Current orbit number.
+        """Return current orbit number.
 
         Returns
         -------
@@ -121,7 +122,6 @@ class Orbits(object):
             as first (0). When iterating backward, orbit labeled as the last.
 
         """
-
         if self._current > 0:
             return self._current - 1
         else:
@@ -141,6 +141,7 @@ class Orbits(object):
         Note
         ----
         A day of data must already be loaded.
+
         """
         # hack included so that orbits appear to be zero indexed
         if key < 0:
@@ -155,8 +156,11 @@ class Orbits(object):
         self._current = 0
 
     def _calcOrbits(self):
-        """Prepares data structure for breaking data into orbits. Not intended
-        for end user."""
+        """Prepare data structure for breaking data into orbits.
+
+        Not intended for end user.
+
+        """
         # if the breaks between orbit have not been defined, define them
         # also, store the data so that grabbing different orbits does not
         # require reloads of whole dataset
@@ -178,8 +182,8 @@ class Orbits(object):
         ----------
         orbit_index_period : float
            The change in value of supplied index parameter for a single orbit
-        """
 
+        """
         if self.orbit_index is None:
             raise ValueError('Orbit properties must be defined at ' +
                              'pysat.Instrument object instantiation.' +
@@ -352,13 +356,11 @@ class Orbits(object):
         self.num = num_orbits
 
     def _orbitNumberBreaks(self):
-        """Determine where orbital breaks in a dataset with orbit numbers
-        occur.
+        """Locate orbital breaks in a dataset with orbit numbers.
 
         Looks for changes in unique values.
 
         """
-
         if self.orbit_index is None:
             raise ValueError('Orbit properties must be defined at ' +
                              'pysat.Instrument object instantiation.' +
@@ -402,6 +404,7 @@ class Orbits(object):
         A day of data must be loaded before this routine functions properly.
         If the last orbit of the day is requested, it will NOT automatically be
         padded with data from the next day.
+
         """
         # ensure data exists
         if not self.sat.empty:
@@ -461,6 +464,7 @@ class Orbits(object):
         If the last orbit of the day is requested, it will automatically be
         padded with data from the next day. The orbit counter will be
         reset to 1.
+
         """
         if not self.sat.empty:  # ensure data exists
             # set up orbit metadata
@@ -539,8 +543,8 @@ class Orbits(object):
         ----
         Forms complete orbits across day boundaries. If no data loaded
         then the first orbit from the first date of data is returned.
-        """
 
+        """
         # first, check if data exists
         if not self.sat.empty:
             # set up orbit metadata
@@ -681,8 +685,8 @@ class Orbits(object):
         ----
         Forms complete orbits across day boundaries. If no data loaded
         then the last orbit of data from the last day is loaded into .data.
-        """
 
+        """
         # first, check if data exists
         if not self.sat.empty:
             # set up orbit metadata
@@ -810,24 +814,13 @@ class Orbits(object):
         Note
         ----
         Limits of iteration set by setting inst.bounds.
+
         """
         # load up the first increment of data
         # coupling with Instrument frame is high, but it is already
         # high in a number of areas
         while self.sat.empty:
             self.sat.next()
-
-        # if self.sat._iter_type == 'file':
-        #     for fname in self.sat._iter_list:
-        #         self.sat.load(fname=fname)
-        #         break
-        #
-        # elif self.sat._iter_type == 'date':
-        #     for date in self.sat._iter_list:
-        #         self.sat.load(date=date)
-        #         break
-        # else:
-        #     raise ValueError('Iteration type not set')
 
         while True:
             self.next()

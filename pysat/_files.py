@@ -1,13 +1,15 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
-import string
-import os
-import weakref
-import re
 import glob
+import os
+import re
+import string
+import weakref
+
 import numpy as np
 import pandas as pds
+
 from pysat import data_dir as data_dir
 
 
@@ -80,10 +82,10 @@ class Files(object):
 
     def __init__(self, sat, manual_org=False, directory_format=None,
                  update_files=False, file_format=None, write_to_disk=True):
-        """ Initialization for Files class object
+        """Initialize Files class object.
 
         Parameters
-        -----------
+        ----------
         sat : pysat._instrument.Instrument
             Instrument object
         manual_org : boolian
@@ -108,8 +110,8 @@ class Files(object):
             If true, the list of Instrument files will be written to disk.
             Setting this to False prevents a rare condition when running
             multiple pysat processes.
-        """
 
+        """
         # pysat.Instrument object
         self._sat = weakref.proxy(sat)
         # location of .pysat file
@@ -170,22 +172,22 @@ class Files(object):
                 self.refresh()
 
     def _attach_files(self, files_info):
-        """Attach results of instrument list_files routine to Instrument object
+        """Attach results of instrument.list_files to Instrument object.
 
         Parameters
-        -----------
+        ----------
         file_info :
             Stored file information
 
         Returns
-        ---------
+        -------
         updates the file list (files), start_date, and stop_date attributes
         of the Files class object.
-        """
 
+        """
         if not files_info.empty:
-            if(not self._sat.multi_file_day and
-               len(files_info.index.unique()) != len(files_info)):
+            unique_files = len(files_info.index.unique()) != len(files_info)
+            if (not self._sat.multi_file_day and unique_files):
                 estr = 'WARNING! Duplicate datetimes in provided file '
                 estr = '{:s}information.\nKeeping one of each '.format(estr)
                 estr = '{:s}of the duplicates, dropping the rest.'.format(estr)
@@ -194,7 +196,6 @@ class Files(object):
 
                 idx = np.unique(files_info.index, return_index=True)
                 files_info = files_info.iloc[idx[1]]
-                # raise ValueError('List of files must have unique datetimes.')
 
             self.files = files_info.sort_index()
             date = files_info.index[0]
@@ -209,8 +210,7 @@ class Files(object):
             self.files = files_info.astype(np.dtype('O'))
 
     def _store(self):
-        """Store currently loaded filelist for instrument onto filesystem"""
-
+        """Store currently loaded filelist for instrument onto filesystem."""
         name = self.stored_file_name
         # check if current file data is different than stored file list
         # if so, move file list to previous file list, store current to file
@@ -243,7 +243,7 @@ class Files(object):
         return
 
     def _load(self, prev_version=False):
-        """Load stored filelist and return as Pandas Series
+        """Load stored filelist and return as Pandas Series.
 
         Parameters
         ----------
@@ -255,8 +255,8 @@ class Files(object):
         pandas.Series
             Full path file names are indexed by datetime
             Series is empty if there is no file list to load
-        """
 
+        """
         fname = self.stored_file_name
         if prev_version:
             fname = os.path.join(self.home_path, 'previous_'+fname)
@@ -284,9 +284,7 @@ class Files(object):
         pysat_data_dir/platform/name/tag/,
         where pysat_data_dir is set by pysat.utils.set_data_dir(path=path).
 
-
         """
-
         output_str = '{platform} {name} {tag} {sat_id}'
         output_str = output_str.format(platform=self._sat.platform,
                                        name=self._sat.name, tag=self._sat.tag,
@@ -324,7 +322,6 @@ class Files(object):
             files are indexed by datetime
 
         """
-
         # refresh files
         self.refresh()
         # current files
@@ -349,7 +346,6 @@ class Files(object):
         is made.
 
         """
-
         idx, = np.where(fname == self.files)
         if len(idx) == 0:
             # filename not in index, try reloading files from disk
@@ -368,6 +364,14 @@ class Files(object):
     # date and index are normal non-inclusive end point
 
     def __getitem__(self, key):
+        """Return file object specified by key.
+
+        Parameters
+        ----------
+        key : string
+            ?????
+
+        """
         if isinstance(key, slice):
             try:
                 try:
@@ -433,7 +437,7 @@ class Files(object):
         return files
 
     def _remove_data_dir_path(self, inp=None):
-        """Remove the data directory path from filenames"""
+        """Remove the data directory path from filenames."""
         if inp is not None:
             split_str = os.path.join(self.data_path, '')
             return inp.apply(lambda x: x.split(split_str)[-1])
@@ -442,7 +446,7 @@ class Files(object):
     def from_os(cls, data_path=None, format_str=None,
                 two_digit_year_break=None, delimiter=None):
         """
-        Produces a list of files and and formats it for Files class.
+        Produce a list of files and and formats it for Files class.
 
         Requires fixed_width or delimited filename
 
@@ -476,7 +480,6 @@ class Files(object):
         'cnofs_cindi_ivm_500ms_{year:4d}{month:02d}{day:02d}_v??.cdf'
 
         """
-
         if data_path is None:
             raise ValueError("Must supply instrument directory path " +
                              "(dir_path)")
@@ -504,7 +507,7 @@ class Files(object):
 
 
 def process_parsed_filenames(stored, two_digit_year_break=None):
-    """Accepts dict with data parsed from filenames and creates
+    """Accept dict with data parsed from filenames and create
     a pandas Series object formatted for the Files class.
 
     Parameters
@@ -604,7 +607,7 @@ def process_parsed_filenames(stored, two_digit_year_break=None):
 
 
 def parse_fixed_width_filenames(files, format_str):
-    """Parses list of files, extracting data identified by format_str
+    """Parse list of files, extracting data identified by format_str.
 
     Parameters
     ----------
@@ -626,7 +629,6 @@ def parse_fixed_width_filenames(files, format_str):
         'files' - input list of files
 
     """
-
     import collections
 
     # create storage for data to be parsed from filenames
@@ -686,7 +688,7 @@ def parse_fixed_width_filenames(files, format_str):
 
 
 def parse_delimited_filenames(files, format_str, delimiter):
-    """Parses list of files, extracting data identified by format_str
+    """Parse list of files, extracting data identified by format_str.
 
     Parameters
     ----------
@@ -709,7 +711,6 @@ def parse_delimited_filenames(files, format_str, delimiter):
         'format_str' - formatted string from input
 
     """
-
     import collections
 
     # create storage for data to be parsed from filenames
@@ -769,8 +770,7 @@ def parse_delimited_filenames(files, format_str, delimiter):
 
 
 def construct_searchstring_from_format(format_str, wildcard=False):
-    """
-    Parses format file string and returns string formatted for searching.
+    """Parse format file string and returns string formatted for searching.
 
     Parameters
     ----------
@@ -804,7 +804,6 @@ def construct_searchstring_from_format(format_str, wildcard=False):
         'cnofs_cindi_ivm_500ms_{year:4d}{month:02d}{day:02d}_v??.cdf'
 
     """
-
     if format_str is None:
         raise ValueError("Must supply a filename template (format_str).")
 
@@ -852,7 +851,7 @@ def construct_searchstring_from_format(format_str, wildcard=False):
 
 def search_local_system_formatted_filename(data_path, search_str):
     """
-    Parses format file string and returns string formatted for searching.
+    Parse format file string and returns string formatted for searching.
 
     Parameters
     ----------
@@ -877,7 +876,6 @@ def search_local_system_formatted_filename(data_path, search_str):
     false positive rate.
 
     """
-
     # perform local file search
     abs_search_str = os.path.join(data_path, search_str)
     files = glob.glob(abs_search_str)

@@ -42,6 +42,7 @@ class Custom(object):
     ----
     User should interact with Custom through pysat.Instrument instance's
     attribute, instrument.custom
+
     """
 
     def __init__(self):
@@ -97,8 +98,8 @@ class Custom(object):
         - pandas Series, .name required
 
         - (string/list of strings, numpy array/list of arrays)
-        """
 
+        """
         if isinstance(function, str):
             # convert string to function object
             function = eval(function)
@@ -120,9 +121,7 @@ class Custom(object):
                             len(self._functions))
 
     def _apply_all(self, sat):
-        """
-        Apply all of the custom functions to the satellite data object.
-        """
+        """Apply all of the custom functions to the satellite data object."""
         if len(self._functions) > 0:
             for func, arg, kwarg, kind in zip(self._functions, self._args,
                                               self._kwargs, self._kind):

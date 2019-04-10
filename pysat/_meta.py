@@ -15,8 +15,9 @@ from pysat import DataFrame, Series
 
 
 class Meta(object):
-    """ Stores metadata for Instrument instance, similar to CF-1.6 netCDFdata
-    standard.
+    """Store metadata for Instrument instance.
+
+    Based on similar to CF-1.6 netCDFdata standard.
 
     Parameters
     ----------
@@ -306,7 +307,7 @@ class Meta(object):
         return other
 
     def accept_default_labels(self, other):
-        """Applies labels for default meta labels from other onto self.
+        """Apply labels for default meta labels from other onto self.
 
         Parameters
         ----------
@@ -318,7 +319,6 @@ class Meta(object):
         Meta
 
         """
-
         self.units_label = other.units_label
         self.name_label = other.name_label
         self.notes_label = other.notes_label
@@ -332,8 +332,7 @@ class Meta(object):
         return
 
     def __contains__(self, other):
-        """case insensitive check for variable name"""
-
+        """Case insensitive check for variable name."""
         if other.lower() in [i.lower() for i in self.keys()]:
             return True
         if other.lower() in [i.lower() for i in self.keys_nD()]:
@@ -344,8 +343,7 @@ class Meta(object):
         return 'pysat.MetaData'
 
     def __str__(self, recurse=True):
-        """String describing Meta instance, variables, and attributes"""
-
+        """Describe Meta instance, variables, and attributes."""
         # cover 1D parameters
         if recurse:
             output_str = 'Metadata for 1D variables\n'
@@ -382,8 +380,7 @@ class Meta(object):
         self._data.loc[input_name, labels] = defaults
 
     def __setitem__(self, names, input_data):
-        """Convenience method for adding metadata."""
-
+        """Add metadata."""
         if isinstance(input_data, dict):
             # if not passed an iterable, make it one
             if isinstance(names, basestring):
@@ -505,7 +502,7 @@ class Meta(object):
             self._ho_data[new_item_name] = input_data
 
     def __getitem__(self, key):
-        """Convenience method for obtaining metadata.
+        """Obtain metadata.
 
         Maps to pandas DataFrame.loc method.
 
@@ -560,7 +557,7 @@ class Meta(object):
 
     def _label_setter(self, new_label, current_label, attr_label,
                       default=np.NaN, use_names_default=False):
-        """Generalized setter of default meta attributes
+        """Set default meta attributes
 
         Parameters
         ----------
@@ -588,7 +585,6 @@ class Meta(object):
         Not intended for end user
 
         """
-
         if new_label not in self.attrs():
             # new label not in metadata, including case
             # update existing label, if present
@@ -704,7 +700,7 @@ class Meta(object):
         self._label_setter(new_label, self._fill_label, 'fill_label', np.NaN)
 
     def var_case_name(self, name):
-        """Provides stored name (case preserved) for case insensitive input
+        """Provide stored name (case preserved) for case insensitive input.
 
         If name is not found (case-insensitive check) then name is returned,
         as input. This function is intended to be used to help ensure the
@@ -721,7 +717,6 @@ class Meta(object):
             string with case preserved as in metaobject
 
         """
-
         lower_name = name.lower()
         if name in self:
             for i in self.keys():
@@ -733,25 +728,22 @@ class Meta(object):
         return name
 
     def keys(self):
-        """Yields variable names stored for 1D variables"""
-
+        """Yield variable names stored for 1D variables."""
         for i in self.data.index:
             yield i
 
     def keys_nD(self):
-        """Yields keys for higher order metadata"""
-
+        """Yield keys for higher order metadata."""
         for i in self.ho_data:
             yield i
 
     def attrs(self):
-        """Yields metadata products stored for each variable name"""
-
+        """Yield metadata products stored for each variable name."""
         for i in self.data.columns:
             yield i
 
     def has_attr(self, name):
-        """Returns boolean indicating presence of given attribute name
+        """Return boolean indicating presence of given attribute name.
 
         Case-insensitive check
 
@@ -770,13 +762,12 @@ class Meta(object):
             True if case-insesitive check for attribute name is True
 
         """
-
         if name.lower() in [i.lower() for i in self.data.columns]:
             return True
         return False
 
     def attr_case_name(self, name):
-        """Returns preserved case name for case insensitive value of name.
+        """Return preserved case name for case insensitive value of name.
 
         Checks first within standard attributes. If not found there, checks
         attributes for higher order data structures. If not found, returns
@@ -793,8 +784,8 @@ class Meta(object):
         -------
         str
             name in proper case
-        """
 
+        """
         lower_name = name.lower()
         for i in self.attrs():
             if lower_name == i.lower():
@@ -809,7 +800,7 @@ class Meta(object):
         return name
 
     def concat(self, other, strict=False):
-        """Concats two metadata objects together.
+        """Concat two metadata objects together.
 
         Parameters
         ----------
@@ -826,8 +817,8 @@ class Meta(object):
         -------
         Meta
             Concatenated object
-        """
 
+        """
         mdata = self.copy()
         # checks
         if strict:
@@ -847,28 +838,21 @@ class Meta(object):
         other_updated = self.apply_default_labels(other)
         # concat 1D metadata in data frames to copy of
         # current metadata
-# <<<<<<< ho_meta_fix
         for key in other_updated.keys():
             mdata.data.loc[key] = other.data.loc[key]
         # add together higher order data
         for key in other_updated.keys_nD():
             mdata.ho_data[key] = other.ho_data[key]
-# =======
-#         for key in other_updated.keys():
-#             mdata[key] = other_updated[key]
-#         # add together higher order data
-#         for key in other_updated.keys_nD():
-#             mdata[key] = other_updated[key]
 
         return mdata
 
     def copy(self):
-        from copy import deepcopy as deepcopy
         """Deep copy of the meta object."""
+        from copy import deepcopy as deepcopy
         return deepcopy(self)
 
     def pop(self, name):
-        """Remove and return metadata about variable
+        """Remove and return metadata about variable.
 
         Parameters
         ----------
@@ -879,6 +863,7 @@ class Meta(object):
         -------
         pandas.Series
             Series of metadata for variable
+
         """
         # check if present
         if name in self:
@@ -917,8 +902,8 @@ class Meta(object):
         -------
         None
             pysat.Instrument object modified in place with new attributes
-        """
 
+        """
         # base Instrument attributes
         banned = inst._base_attr
         # get base attribute set, and attributes attached to instance
@@ -954,7 +939,6 @@ class Meta(object):
                                                     ' as it already exists in',
                                                     ' the Instrument object.'
                                                     )))
-        # return inst
 
     def __eq__(self, other):
         """
@@ -967,7 +951,6 @@ class Meta(object):
         Name comparison is case-sensitive.
 
         """
-
         if isinstance(other, Meta):
             # check first if variables and attributes are the same
             # quick check on length
@@ -1072,6 +1055,7 @@ class Meta(object):
         ----
         column names must include at least ['name', 'long_name', 'units'],
         assumed if col_names is None.
+
         """
         import pysat
         req_names = ['name', 'long_name', 'units']
