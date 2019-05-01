@@ -18,7 +18,8 @@ platform : string
 name : string
     'gps' for Radio Occultation profiles
 tag : string
-    Select profile type, one of {'ionprf', 'sonprf', 'wetprf', 'atmprf'}
+    Select profile type, one of {'ionprf', 'sonprf', 'wetprf', 'atmprf',
+                                 'scnLvl1'}
 
 Note
 ----
@@ -26,6 +27,7 @@ Note
 - 'sonprf': 'sonPrf' files
 - 'wetprf': 'wetPrf' files
 - 'atmPrf': 'atmPrf' files
+- 'scnLvl1': 'scnLvl1' files
 
 Warnings
 --------
@@ -38,7 +40,6 @@ import glob
 import os
 import sys
 from scipy.io.netcdf import netcdf_file
-import pandas as pds
 import numpy as np
 import pysat
 
@@ -47,12 +48,14 @@ name = 'gps'
 tags = {'ionprf': '',
         'sonprf': '',
         'wetprf': '',
-        'atmprf': ''}
-sat_ids = {'': ['ionprf', 'sonprf', 'wetprf', 'atmprf']}
+        'atmprf': '',
+        'scnlvl1': ''}
+sat_ids = {'': ['ionprf', 'sonprf', 'wetprf', 'atmprf', 'scnlvl1']}
 test_dates = {'': {'ionprf': pysat.datetime(2008, 1, 1),
                    'sonprf': pysat.datetime(2008, 1, 1),
                    'wetprf': pysat.datetime(2008, 1, 1),
-                   'atmprf': pysat.datetime(2008, 1, 1)}}
+                   'atmprf': pysat.datetime(2008, 1, 1),
+                   'scnLvl1': pysat.datetime(2008, 1, 1)}}
 
 
 def list_files(tag=None, sat_id=None, data_path=None, format_str=None):
@@ -308,8 +311,10 @@ def download(date_array, tag, sat_id, data_path=None, user=None,
         sub_dir = 'sonPrf'
     elif tag == 'wetprf':
         sub_dir = 'wetPrf'
-    elif tag == 'atmPrf':
+    elif tag == 'atmprf':
         sub_dir = 'atmPrf'
+    elif tag == 'scnlvl1':
+        sub_dir = 'scnLvl1'
     else:
         raise ValueError('Unknown cosmic_gps tag')
 
